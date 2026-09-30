@@ -1,12 +1,12 @@
 {
   "name": "grup-trafec",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Gestió central del Grup Tràfec",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node tests/smoke.test.js"
+    "test": "node tests/smoke.test.js && node tests/crm.test.js"
   },
   "dependencies": {
     "express": "^5.1.0"
