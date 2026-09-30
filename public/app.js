@@ -52,7 +52,16 @@ function renderForm(contact=null){
   document.getElementById('cancel').onclick=()=>loadCrm().catch(showError);
   document.getElementById('contactForm').onsubmit=async e=>{
     e.preventDefault();setStatus('Guardant...');
-    const payload={name:f_name.value.trim(),phone:f_phone.value.trim(),email:f_email.value.trim(),segment:f_segment.value,preferences:f_preferences.value.trim(),notes:f_notes.value.trim(),active:f_active.checked};
+    const field=id=>document.getElementById(id);
+    const payload={
+      name:field('f_name').value.trim(),
+      phone:field('f_phone').value.trim(),
+      email:field('f_email').value.trim(),
+      segment:field('f_segment').value,
+      preferences:field('f_preferences').value.trim(),
+      notes:field('f_notes').value.trim(),
+      active:field('f_active').checked
+    };
     try{
       if(contact) await api(`/api/crm/contacts/${encodeURIComponent(contact.id)}`,{method:'PUT',body:JSON.stringify(payload)});
       else await api('/api/crm/contacts',{method:'POST',body:JSON.stringify(payload)});
