@@ -4,18 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>GRUP TRÀFEC</title>
-  <style>
-    body{font-family:Arial,sans-serif;margin:0;background:#f5f5f5;color:#111}
-    main{max-width:900px;margin:60px auto;padding:32px;background:#fff;border:1px solid #ddd}
-    h1{margin-top:0}
-    .muted{color:#666}
-  </style>
+  <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-  <main>
-    <h1>GRUP TRÀFEC</h1>
-    <p>Gestió central del grup.</p>
-    <p class="muted">Estructura base inicial. Sense centres ni miniapps en aquesta fase.</p>
-  </main>
+  <div class="app">
+    <aside class="side">
+      <div class="brand">GRUP TRÀFEC</div>
+      <button class="active" data-view="home">Inici</button>
+      <button data-view="crm">CRM</button>
+    </aside>
+    <main class="main">
+      <div id="status" class="status"></div>
+      <div id="view"></div>
+    </main>
+  </div>
+  <script src="/app.js"></script>
 </body>
 </html>
