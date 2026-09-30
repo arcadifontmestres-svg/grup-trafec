@@ -4,6 +4,8 @@ const view = document.getElementById('view');
 const statusEl = document.getElementById('status');
 let contacts = [];
 let segments = ['Nou','Habitual','Empresa','Grup','VIP'];
+let proposals = [];
+let commercialStatus = {};
 
 function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function api(url, options={}){
@@ -13,6 +15,9 @@ async function api(url, options={}){
   return data;
 }
 function setStatus(text=''){statusEl.textContent=text}
+function setActive(name){document.querySelectorAll('.side button').forEach(x=>x.classList.toggle('active',x.dataset.view===name))}
+function money(value){return `${(Number(value)||0).toFixed(2).replace('.',',')} €`}
+function statusLabel(value){return ({ESBORRANY:'Esborrany',PENDENT_VALIDACIO:'Pendent validació',VALIDADA:'Validada',ENVIADA:'Enviada',ACCEPTADA:'Acceptada',REBUTJADA:'Rebutjada',CANCEL_LADA:'Cancel·lada'})[value]||value||''}
 
 async function loadCrm(q=''){
   setStatus('Carregant...');
@@ -20,7 +25,6 @@ async function loadCrm(q=''){
   contacts=out.items||[];segments=out.segments||segments;
   renderCrm();setStatus(`${contacts.length} contactes`);
 }
-
 function renderCrm(){
   view.innerHTML=`
     <div class="head"><div><h1>CRM</h1><div class="muted">Contactes, preferències i seguiment comercial del Grup Tràfec.</div></div><button class="btn" id="newContact">+ Nou contacte</button></div>
@@ -28,14 +32,13 @@ function renderCrm(){
     <div class="panel tableWrap"><table><thead><tr><th>Client</th><th>Telèfon</th><th>Email</th><th>Segment</th><th></th></tr></thead><tbody>
       ${contacts.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${esc(c.phone)}</td><td>${esc(c.email)}</td><td>${esc(c.segment)}</td><td><button class="rowBtn" data-edit="${esc(c.id)}">Editar</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Encara no hi ha contactes CRM.</td></tr>'}
     </tbody></table></div>`;
-  document.getElementById('newContact').onclick=()=>renderForm();
+  document.getElementById('newContact').onclick=()=>renderContactForm();
   document.getElementById('searchBtn').onclick=()=>loadCrm(document.getElementById('search').value.trim()).catch(showError);
   document.getElementById('clearBtn').onclick=()=>loadCrm().catch(showError);
   document.getElementById('search').onkeydown=e=>{if(e.key==='Enter')loadCrm(e.target.value.trim()).catch(showError)};
-  document.querySelectorAll('[data-edit]').forEach(btn=>btn.onclick=()=>renderForm(contacts.find(x=>x.id===btn.dataset.edit)));
+  document.querySelectorAll('[data-edit]').forEach(btn=>btn.onclick=()=>renderContactForm(contacts.find(x=>x.id===btn.dataset.edit)));
 }
-
-function renderForm(contact=null){
+function renderContactForm(contact=null){
   const c=contact||{};
   view.innerHTML=`
     <div class="head"><div><h1>${contact?'Editar contacte':'Nou contacte'}</h1><div class="muted">CRM global de Grup Tràfec.</div></div><button class="btn secondary" id="back">← CRM</button></div>
@@ -53,15 +56,7 @@ function renderForm(contact=null){
   document.getElementById('contactForm').onsubmit=async e=>{
     e.preventDefault();setStatus('Guardant...');
     const field=id=>document.getElementById(id);
-    const payload={
-      name:field('f_name').value.trim(),
-      phone:field('f_phone').value.trim(),
-      email:field('f_email').value.trim(),
-      segment:field('f_segment').value,
-      preferences:field('f_preferences').value.trim(),
-      notes:field('f_notes').value.trim(),
-      active:field('f_active').checked
-    };
+    const payload={name:field('f_name').value.trim(),phone:field('f_phone').value.trim(),email:field('f_email').value.trim(),segment:field('f_segment').value,preferences:field('f_preferences').value.trim(),notes:field('f_notes').value.trim(),active:field('f_active').checked};
     try{
       if(contact) await api(`/api/crm/contacts/${encodeURIComponent(contact.id)}`,{method:'PUT',body:JSON.stringify(payload)});
       else await api('/api/crm/contacts',{method:'POST',body:JSON.stringify(payload)});
@@ -70,12 +65,66 @@ function renderForm(contact=null){
   };
 }
 
-function renderHome(){
-  view.innerHTML=`<div class="head"><div><h1>GRUP TRÀFEC</h1><div class="muted">Gestió central del grup.</div></div></div><div class="panel"><b>Nucli nou actiu.</b><p>Les funcions es construeixen aquí una sola vegada. Els centres i miniapps s’afegiran després com a accessos governats.</p></div>`;
-  setStatus('');
+async function loadCommercial(){
+  setStatus('Carregant...');
+  const [proposalOut,contactOut]=await Promise.all([api('/api/comercial/proposals'),api('/api/crm/contacts?includeInactive=1')]);
+  proposals=proposalOut.items||[];commercialStatus=proposalOut.status||{};contacts=contactOut.items||[];segments=contactOut.segments||segments;
+  renderCommercial();setStatus(`${proposals.length} propostes`);
 }
+function commercialActions(p){
+  const buttons=[];
+  if(['ESBORRANY','PENDENT_VALIDACIO','VALIDADA'].includes(p.status)) buttons.push(`<button class="rowBtn" data-edit-proposal="${esc(p.id)}">Editar</button>`);
+  if(p.status==='ESBORRANY') buttons.push(`<button class="rowBtn" data-status="PENDENT_VALIDACIO" data-id="${esc(p.id)}">Enviar a validació</button>`);
+  if(p.status==='PENDENT_VALIDACIO') buttons.push(`<button class="rowBtn" data-status="VALIDADA" data-id="${esc(p.id)}">Validar</button>`);
+  if(p.status==='VALIDADA') buttons.push(`<button class="rowBtn" data-status="ENVIADA" data-id="${esc(p.id)}">Marcar enviada</button>`);
+  if(p.status==='ENVIADA'){
+    buttons.push(`<button class="rowBtn" data-status="ACCEPTADA" data-id="${esc(p.id)}">Acceptada</button>`);
+    buttons.push(`<button class="rowBtn" data-status="REBUTJADA" data-id="${esc(p.id)}">Rebutjada</button>`);
+  }
+  return buttons.join(' · ');
+}
+function renderCommercial(){
+  view.innerHTML=`
+    <div class="head"><div><h1>Comercial / Grups</h1><div class="muted">Propostes comercials globals vinculades al CRM.</div></div><button class="btn" id="newProposal">+ Nova proposta</button></div>
+    <div class="panel"><div class="muted">Flux: Esborrany → Pendent validació → Validada → Enviada → Acceptada/Rebutjada.</div></div>
+    <div class="panel tableWrap"><table><thead><tr><th>Codi</th><th>Client</th><th>Servei</th><th>Pax</th><th>Menú</th><th>Total</th><th>Estat</th><th></th></tr></thead><tbody>
+    ${proposals.map(p=>`<tr><td><b>${esc(p.code)}</b></td><td>${esc(p.clientName)}</td><td>${esc(p.eventDate)} ${esc(p.eventTime||'')}</td><td>${esc(p.pax)}</td><td>${esc(p.menuName||'—')}</td><td>${money(p.totalAmount)}</td><td>${esc(statusLabel(p.status))}</td><td>${commercialActions(p)}</td></tr>`).join('')||'<tr><td colspan="8" class="empty">Encara no hi ha propostes comercials.</td></tr>'}
+    </tbody></table></div>`;
+  document.getElementById('newProposal').onclick=()=>renderProposalForm();
+  document.querySelectorAll('[data-edit-proposal]').forEach(btn=>btn.onclick=()=>renderProposalForm(proposals.find(x=>x.id===btn.dataset.editProposal)));
+  document.querySelectorAll('[data-status]').forEach(btn=>btn.onclick=()=>changeProposalStatus(btn.dataset.id,btn.dataset.status));
+}
+function renderProposalForm(proposal=null){
+  const p=proposal||{};
+  view.innerHTML=`
+    <div class="head"><div><h1>${proposal?'Editar proposta':'Nova proposta comercial'}</h1><div class="muted">Funció global de Grup Tràfec.</div></div><button class="btn secondary" id="backCommercial">← Comercial</button></div>
+    <form class="panel" id="proposalForm"><div class="grid">
+      <div class="wide"><label>Client existent</label><select id="p_client"><option value="">— Crear / escriure client —</option>${contacts.map(c=>`<option value="${esc(c.id)}" ${c.id===p.clientId?'selected':''}>${esc(c.name)}${c.phone?` · ${esc(c.phone)}`:''}</option>`).join('')}</select></div>
+      <div><label>Nom client</label><input id="p_name" value="${esc(p.clientName||'')}"></div>
+      <div><label>Telèfon</label><input id="p_phone" value="${esc(p.clientPhone||'')}"></div>
+      <div><label>Email</label><input id="p_email" type="email" value="${esc(p.clientEmail||'')}"></div>
+      <div><label>Data servei *</label><input id="p_date" type="date" required value="${esc(p.eventDate||'')}"></div>
+      <div><label>Hora</label><input id="p_time" type="time" value="${esc(p.eventTime||'')}"></div>
+      <div><label>Pax *</label><input id="p_pax" type="number" min="1" value="${esc(p.pax||1)}"></div>
+      <div><label>Menú / proposta</label><input id="p_menu" value="${esc(p.menuName||'')}"></div>
+      <div><label>Preu per persona</label><input id="p_price" type="number" min="0" step="0.01" value="${esc(p.pricePerPerson||0)}"></div>
+      <div class="wide"><label>Notes</label><textarea id="p_notes">${esc(p.notes||'')}</textarea></div>
+    </div><div class="toolbar" style="margin-top:16px"><button class="btn" type="submit">Guardar proposta</button><button class="btn secondary" type="button" id="cancelProposal">Cancel·lar</button></div></form>`;
+  const goBack=()=>loadCommercial().catch(showError);
+  document.getElementById('backCommercial').onclick=goBack;document.getElementById('cancelProposal').onclick=goBack;
+  const clientSelect=document.getElementById('p_client');
+  clientSelect.onchange=()=>{const c=contacts.find(x=>x.id===clientSelect.value);if(c){document.getElementById('p_name').value=c.name||'';document.getElementById('p_phone').value=c.phone||'';document.getElementById('p_email').value=c.email||'';}};
+  document.getElementById('proposalForm').onsubmit=async e=>{
+    e.preventDefault();const f=id=>document.getElementById(id);const payload={clientId:f('p_client').value,clientName:f('p_name').value.trim(),clientPhone:f('p_phone').value.trim(),clientEmail:f('p_email').value.trim(),eventDate:f('p_date').value,eventTime:f('p_time').value,pax:Number(f('p_pax').value)||1,menuName:f('p_menu').value.trim(),pricePerPerson:Number(f('p_price').value)||0,notes:f('p_notes').value.trim()};
+    try{setStatus('Guardant...');if(proposal)await api(`/api/comercial/proposals/${encodeURIComponent(proposal.id)}`,{method:'PUT',body:JSON.stringify(payload)});else await api('/api/comercial/proposals',{method:'POST',body:JSON.stringify(payload)});await loadCommercial();setStatus('Guardat');}catch(error){showError(error)}
+  };
+}
+async function changeProposalStatus(id,status){try{setStatus('Actualitzant...');await api(`/api/comercial/proposals/${encodeURIComponent(id)}/status`,{method:'PATCH',body:JSON.stringify({status})});await loadCommercial();}catch(error){showError(error)}}
+
+function renderHome(){view.innerHTML=`<div class="head"><div><h1>GRUP TRÀFEC</h1><div class="muted">Gestió central del grup.</div></div></div><div class="panel"><b>Nucli nou actiu.</b><p>Les funcions es construeixen aquí una sola vegada. Els centres i miniapps s’afegiran després com a accessos governats.</p></div>`;setStatus('')}
 function showError(error){setStatus('Error');alert(error.message||error)}
 
-document.querySelector('[data-view="home"]').onclick=()=>{document.querySelectorAll('.side button').forEach(x=>x.classList.remove('active'));document.querySelector('[data-view="home"]').classList.add('active');renderHome()};
-document.querySelector('[data-view="crm"]').onclick=()=>{document.querySelectorAll('.side button').forEach(x=>x.classList.remove('active'));document.querySelector('[data-view="crm"]').classList.add('active');loadCrm().catch(showError)};
+document.querySelector('[data-view="home"]').onclick=()=>{setActive('home');renderHome()};
+document.querySelector('[data-view="crm"]').onclick=()=>{setActive('crm');loadCrm().catch(showError)};
+document.querySelector('[data-view="commercial"]').onclick=()=>{setActive('commercial');loadCommercial().catch(showError)};
 renderHome();
