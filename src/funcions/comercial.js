@@ -28,7 +28,7 @@ function nextCode(items, year = new Date().getFullYear()) {
   return `PROP-${year}-${String(max + 1).padStart(4, '0')}`;
 }
 
-function createCommercialService(store, crm) {
+function createCommercialService(store, crm, reservations = null) {
   if (!store || !crm) throw new Error('Comercial necessita dades i CRM.');
 
   function list({ status = '', clientId = '' } = {}) {
@@ -181,6 +181,27 @@ function createCommercialService(store, crm) {
       saved = { ...current, status, updatedAt: now, statusHistory: [...(current.statusHistory || []), { status, at: now }] };
       data.commercialProposals[index] = saved;
     });
+
+    if (status === STATUS.ACCEPTED && reservations) {
+      const reservation = reservations.create({
+        date: saved.eventDate,
+        time: saved.eventTime,
+        pax: saved.pax,
+        name: saved.clientName,
+        phone: saved.clientPhone,
+        email: saved.clientEmail,
+        menuName: saved.menuName,
+        notes: saved.notes,
+        source: 'COMERCIAL',
+        status: reservations.status.CONFIRMED,
+        commercialProposalId: saved.id
+      });
+      store.update(data => {
+        const index = data.commercialProposals.findIndex(item => item.id === saved.id);
+        if (index >= 0) data.commercialProposals[index].reservationId = reservation.id;
+      });
+      saved = get(saved.id);
+    }
     return saved;
   }
 
