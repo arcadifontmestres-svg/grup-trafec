@@ -1,15 +1,15 @@
 'use strict';
 
 const express = require('express');
+const { contextId, assertCenterFunction } = require('./center-access');
 
-function contextId(req) { return String(req.query.centerId || '').trim(); }
-
-function createReservationContextRouter(reservations, links) {
+function createReservationContextRouter(reservations, links, govern) {
   const router = express.Router();
 
   router.get('/', (req, res, next) => {
     try {
       const centerId = contextId(req);
+      assertCenterFunction(govern, centerId, 'reservations');
       const items = reservations.list({
         dateFrom: req.query.dateFrom || '',
         dateTo: req.query.dateTo || '',
@@ -22,8 +22,10 @@ function createReservationContextRouter(reservations, links) {
 
   router.post('/', (req, res, next) => {
     try {
+      const centerId = contextId(req);
+      assertCenterFunction(govern, centerId, 'reservations');
       const item = reservations.create(req.body);
-      links.add('reservation', item.id, contextId(req));
+      links.add('reservation', item.id, centerId);
       res.status(201).json(item);
     } catch (error) { next(error); }
   });
@@ -31,6 +33,7 @@ function createReservationContextRouter(reservations, links) {
   router.put('/:id', (req, res, next) => {
     try {
       const centerId = contextId(req);
+      assertCenterFunction(govern, centerId, 'reservations');
       if (centerId && !links.has('reservation', req.params.id, centerId)) return res.status(404).json({ error: 'Reserva no trobada.' });
       const item = reservations.update(req.params.id, req.body);
       links.add('reservation', item.id, centerId);
@@ -41,6 +44,7 @@ function createReservationContextRouter(reservations, links) {
   router.get('/ocupacio/resum', (req, res, next) => {
     try {
       const centerId = contextId(req);
+      assertCenterFunction(govern, centerId, 'reservations');
       const raw = reservations.occupancy({ dateFrom: req.query.dateFrom || '', dateTo: req.query.dateTo || '' });
       const items = raw.reservations.filter(item => links.has('reservation', item.id, centerId));
       const blocks = raw.blocks.filter(item => links.has('occupancy', item.id, centerId));
@@ -59,8 +63,10 @@ function createReservationContextRouter(reservations, links) {
 
   router.post('/ocupacio/bloquejos', (req, res, next) => {
     try {
+      const centerId = contextId(req);
+      assertCenterFunction(govern, centerId, 'reservations');
       const item = reservations.createBlock(req.body);
-      links.add('occupancy', item.id, contextId(req));
+      links.add('occupancy', item.id, centerId);
       res.status(201).json(item);
     } catch (error) { next(error); }
   });
