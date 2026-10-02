@@ -32,6 +32,31 @@
     return centers.find(item => item.id === currentCenterId) || null;
   }
 
+  function functionAllowed(key) {
+    const center = selectedCenter();
+    if (!center) return true;
+    return !center.permissions || center.permissions[key] !== false;
+  }
+
+  function applyMenuPermissions() {
+    const mapping = {
+      crm: 'crm',
+      commercial: 'commercial',
+      reservations: 'reservations'
+    };
+    Object.entries(mapping).forEach(([viewName, permissionKey]) => {
+      const button = document.querySelector(`[data-view="${viewName}"]`);
+      if (button) button.style.display = functionAllowed(permissionKey) ? '' : 'none';
+    });
+
+    const active = document.querySelector('.side button.active');
+    const activeName = active?.dataset.view || 'home';
+    if (mapping[activeName] && !functionAllowed(mapping[activeName])) {
+      setActive('home');
+      renderHome();
+    }
+  }
+
   function renderBadge() {
     let badge = document.getElementById('contextBadge');
     if (!badge) {
@@ -43,7 +68,16 @@
       document.querySelector('.main').insertBefore(badge, document.getElementById('status'));
     }
     const center = selectedCenter();
-    badge.textContent = center ? `Centre actiu: ${center.name}` : 'Context: GRUP TRÀFEC · visió global';
+    if (!center) {
+      badge.textContent = 'Context: GRUP TRÀFEC · visió global';
+      return;
+    }
+    const enabled = [
+      functionAllowed('crm') ? 'CRM' : '',
+      functionAllowed('commercial') ? 'Comercial' : '',
+      functionAllowed('reservations') ? 'Reserves' : ''
+    ].filter(Boolean).join(' · ');
+    badge.textContent = `Centre actiu: ${center.name} · ${enabled || 'sense funcions operatives'}`;
   }
 
   function renderSelector() {
@@ -65,6 +99,7 @@
     select.onchange = () => {
       currentCenterId = select.value;
       localStorage.setItem(STORAGE_KEY, currentCenterId);
+      applyMenuPermissions();
       renderBadge();
       reloadCurrentView();
     };
@@ -73,10 +108,11 @@
   function reloadCurrentView() {
     const active = document.querySelector('.side button.active');
     const name = active?.dataset.view || 'home';
-    if (name === 'crm') return loadCrm().catch(showError);
-    if (name === 'commercial') return loadCommercial().catch(showError);
-    if (name === 'reservations') return loadReservations().catch(showError);
+    if (name === 'crm' && functionAllowed('crm')) return loadCrm().catch(showError);
+    if (name === 'commercial' && functionAllowed('commercial')) return loadCommercial().catch(showError);
+    if (name === 'reservations' && functionAllowed('reservations')) return loadReservations().catch(showError);
     if (name === 'govern') return loadGovern().catch(showError);
+    setActive('home');
     renderHome();
   }
 
@@ -101,6 +137,7 @@
       localStorage.setItem(STORAGE_KEY, '');
     }
     renderSelector();
+    applyMenuPermissions();
     renderBadge();
     return out;
   }
