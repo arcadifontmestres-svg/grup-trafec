@@ -27,13 +27,13 @@ app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, app: 'GRUP TRÀFEC', version: '0.5.0' });
+  res.json({ ok: true, app: 'GRUP TRÀFEC', version: '0.6.0' });
 });
 
 app.use('/api/govern', createGovernRouter(govern));
-app.use('/api/crm', createCrmContextRouter(crm, links));
-app.use('/api/comercial', createCommercialContextRouter(commercial, links));
-app.use('/api/reserves', createReservationContextRouter(reservations, links));
+app.use('/api/crm', createCrmContextRouter(crm, links, govern));
+app.use('/api/comercial', createCommercialContextRouter(commercial, links, govern));
+app.use('/api/reserves', createReservationContextRouter(reservations, links, govern));
 
 app.use((error, _req, res, _next) => {
   console.error(error);
