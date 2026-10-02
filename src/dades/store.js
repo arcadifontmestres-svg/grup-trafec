@@ -4,6 +4,9 @@ const fs = require('fs');
 const path = require('path');
 
 const DEFAULT_DATA = Object.freeze({
+  centers: [],
+  centerPermissions: [],
+  recordAssignments: [],
   crmContacts: [],
   commercialProposals: [],
   reservations: [],
@@ -16,6 +19,9 @@ function clone(value) {
 
 function ensureShape(data) {
   const out = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  if (!Array.isArray(out.centers)) out.centers = [];
+  if (!Array.isArray(out.centerPermissions)) out.centerPermissions = [];
+  if (!Array.isArray(out.recordAssignments)) out.recordAssignments = [];
   if (!Array.isArray(out.crmContacts)) out.crmContacts = [];
   if (!Array.isArray(out.commercialProposals)) out.commercialProposals = [];
   if (!Array.isArray(out.reservations)) out.reservations = [];
