@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-for (const relative of ['../public/app.js', '../public/context.js']) {
+for (const relative of ['../public/app.js', '../public/context.js', '../public/govern-menu-v2.js']) {
   const file = path.join(__dirname, relative);
   new vm.Script(fs.readFileSync(file, 'utf8'), { filename: file });
 }
