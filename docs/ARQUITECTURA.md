@@ -1,62 +1,78 @@
 # Arquitectura mare — GRUP TRÀFEC
 
-## 1. Nucli únic
+## 1. Ecosistema de miniapps
 
-GRUP TRÀFEC és el nucli de govern, dades i funcionalitat del grup.
+GRUP TRÀFEC no és una única aplicació gegant ni una còpia diferent per cada centre.
 
-Les funcions existeixen una sola vegada i són globals. No es creen versions per centre.
+El sistema es construeix com un conjunt de **miniapps i eines funcionals autònomes**. Cada miniapp conserva la seva lògica i les seves dades, i pot ser utilitzada per un o més centres segons la configuració.
 
-## 2. Capes
-
-### Govern
-- Empreses
-- Centres
-- Usuaris
-- Rols
-- Permisos
-- Configuració
-- Visió global
-- Anàlisi
-
-### Funcions globals
-- CRM
-- Reserves
-- Agenda / Ocupació
-- Comercial / Grups
-- Cuina
-- Productes
-- Bases
-- Plats
-- Escandalls
-- Produccions
-- Necessitats
-- Compres
-- Magatzem
-- APPCC
-- RRHH
-- Planning
+Exemples de miniapps o eines del catàleg:
+- Reserves / Ocupació
 - Fitxatges
+- Gestió cuina
+- Gestió magatzem
+- Control normatiu / APPCC
+- Gestió general
+- Front Office / TPV
+- CRM
+- Comercial / Grups
 
-### Dades
-Una única font de dades mestres.
+No es crea una còpia nova de cada miniapp per centre.
 
-### API
-Una única porta controlada perquè altres interfícies puguin consultar o executar funcions autoritzades.
+## 2. App Gestió Grup Tràfec
 
-## 3. Centres
+**Gestió Grup Tràfec** és una app pròpia de govern. Té la porta oberta al conjunt del sistema i serveix per decidir com s'utilitzen les eines.
 
-Els centres no són aplicacions ni mòduls duplicats. Són identitats/contextos gestionats per Govern.
+El seu menú principal és:
+- Front Office
+- Back Office
+- RRHH
+- Configuració
 
-## 4. Miniapps
+Dins d'aquests apartats es connecten les eines o miniapps reals.
 
-No formen part d'aquesta primera fase.
+## 3. Configuració
 
-Quan el nucli estigui consolidat, les miniapps seran interfícies externes i simples que rebran permisos per executar funcions del Grup.
+Configuració és l'origen de les dades de govern.
 
-## 5. Regla de migració
+Ha de permetre:
+- crear un centre nou;
+- editar un centre;
+- crear un empleat nou;
+- editar un empleat;
+- assignar centres a empleats;
+- activar o desactivar eines / miniapps per centre.
 
-El projecte antic és una font de peces. Cada peça només entra si:
-1. correspon a una funció definida aquí;
-2. no introdueix dependències antigues innecessàries;
-3. passa una prova funcional;
-4. respecta la base de dades i govern únics.
+Un centre nou **no rep funcions automàticament**. Neix buit i l'usuari decideix què hi posa.
+
+## 4. Regla de dades
+
+No hi ha centres, empleats, clients ni altres registres ficticis creats per defecte.
+
+Les dades només existeixen quan:
+1. l'usuari les crea expressament;
+2. una miniapp real les genera com a part de la seva funció.
+
+Exemple: a Reserves, una persona que reserva és un client de l'eina de reserves. No es converteix automàticament en empleat ni obliga a inventar cap altra dada de govern.
+
+## 5. Centres
+
+Els centres són entitats creades des de Configuració. Cada centre pot tenir un conjunt diferent d'eines o miniapps habilitades.
+
+La mateixa miniapp pot treballar amb diferents centres sense duplicar el codi.
+
+## 6. Estat d'una eina
+
+El catàleg pot contenir:
+- eines ja connectades i operatives;
+- eines definides però encara pendents de connectar.
+
+La interfície ha de distingir clarament aquests dos estats i no presentar una funció pendent com si ja funcionés.
+
+## 7. Criteri funcional
+
+Una funció es considera acabada quan compleix:
+
+`crear → guardar → recarregar → consultar → conservar resultat`
+
+La configuració i les dades de govern segueixen el mateix criteri.
