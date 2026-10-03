@@ -1,12 +1,12 @@
 {
   "name": "grup-trafec",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Gestió central del Grup Tràfec",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --check public/app.js && node --check src/server.js && node tests/smoke.test.js && node tests/crm.test.js && node tests/comercial.test.js && node tests/reserves-ocupacio.test.js"
+    "test": "node --check public/app.js && node --check public/gestio.js && node --check src/server.js && node --check src/funcions/govern.js && node --check src/api/govern.js && node tests/smoke.test.js && node tests/crm.test.js && node tests/comercial.test.js && node tests/reserves-ocupacio.test.js && node tests/govern.test.js"
   },
   "dependencies": {
     "express": "^5.1.0"
