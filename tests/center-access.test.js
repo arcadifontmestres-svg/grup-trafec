@@ -17,9 +17,13 @@ try {
   const center = govern.createCenter({ code: 'TEST', name: 'Centre Test' });
 
   assert.doesNotThrow(() => assertCenterFunction(govern, '', 'commercial'));
-  assert.doesNotThrow(() => assertCenterFunction(govern, center.id, 'crm'));
+  assert.throws(
+    () => assertCenterFunction(govern, center.id, 'crm'),
+    error => error && error.status === 403
+  );
 
   govern.setPermissions(center.id, { functions: { crm: true, commercial: false, reservations: true } });
+  assert.doesNotThrow(() => assertCenterFunction(govern, center.id, 'crm'));
   assert.throws(
     () => assertCenterFunction(govern, center.id, 'commercial'),
     error => error && error.status === 403
