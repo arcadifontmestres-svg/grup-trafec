@@ -1,0 +1,1 @@
+Implementació en curs del menú Gestió Grup Tràfec.
