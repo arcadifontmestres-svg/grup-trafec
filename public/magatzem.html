@@ -5,7 +5,7 @@ body{font:15px Arial,sans-serif;color:#111;background:white;margin:24px}header{d
 <header><h1>GRUP TRÀFEC · Magatzem</h1><a href="/">Gestió central</a></header>
 <p>Consulta del catàleg mestre i de l'estoc del centre autoritzat.</p>
 <div class="controls"><label>Centre <select id="center"><option value="">Selecciona centre</option></select></label><label>Família <select id="family"><option value="">Totes</option></select></label><label>Buscar <input id="query" placeholder="Nom del producte"></label><button id="print">Imprimir</button></div>
-<p id="error" role="alert"></p><p id="count"></p>
+<form id="reception" class="controls"><strong>Recepció i traçabilitat APPCC</strong><label>Producte <select id="product" required></select></label><label>Quantitat <input id="quantity" type="number" step="any" min="0.001" required></label><label>Lot <input id="lot" required></label><label>Proveïdor <input id="supplier" required></label><label>Caducitat <input id="expiry" type="date"></label><button type="submit">Registrar recepció</button></form><p id="error" role="alert"></p><p id="count"></p>
 <table><thead><tr><th>Producte</th><th>Família</th><th>Unitat</th><th>Estoc centre</th><th>Mínim</th><th>Estat</th></tr></thead><tbody id="items"></tbody></table>
 <script>
 'use strict';
@@ -30,11 +30,13 @@ async function load(){
  try{
   const [catalog,stock]=await Promise.all([api('/api/magatzem/products?centerId='+encodeURIComponent(id)),api('/api/magatzem/stock/'+encodeURIComponent(id))]);
   products=catalog.items;families=catalog.families;quantities=stock.quantities;
+  $('product').replaceChildren(new Option('Selecciona producte',''),...products.map(p=>new Option(p.name,p.id)));
   $('family').replaceChildren(new Option('Totes',''),...families.map(f=>new Option(f,f)));render();
  }catch(e){$('error').textContent=e.message;}
 }
 async function init(){
  try{const out=await api('/api/govern/centres');for(const c of out.items||[])$('center').add(new Option(c.name,c.id));}catch(e){$('error').textContent=e.message;}
 }
+$('reception').onsubmit=async event=>{event.preventDefault();const centerId=$('center').value;if(!centerId){$('error').textContent='Selecciona centre';return;}const button=$('reception').querySelector('button[type=submit]');button.disabled=true;try{const response=await fetch('/api/magatzem/receptions/'+encodeURIComponent(centerId),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({requestId:crypto.randomUUID(),productId:$('product').value,quantity:Number($('quantity').value),lot:$('lot').value,supplier:$('supplier').value,expiry:$('expiry').value})});const data=await response.json();if(!response.ok)throw Error(data.error||'Error en registrar');$('reception').reset();await load();$('count').textContent+=' · Recepció i APPCC registrats';}catch(e){$('error').textContent=e.message;}finally{button.disabled=false;}};
 $('center').onchange=load;$('family').onchange=render;$('query').oninput=render;$('print').onclick=()=>window.print();init();
 </script></body></html>
