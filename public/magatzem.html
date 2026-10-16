@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ca"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Magatzem · GRUP TRÀFEC</title><style>
+body{font:15px Arial,sans-serif;color:#111;background:white;margin:24px}header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}h1{font-size:22px}label{display:inline-block;margin:8px}input,select,button{font:inherit;padding:7px;border:1px solid #888;background:white}button{cursor:pointer}table{border-collapse:collapse;width:100%;margin-top:18px}td,th{border-bottom:1px solid #bbb;padding:9px;text-align:left}th{background:#eee}.low{font-weight:bold;text-decoration:underline}#error{color:#900} @media print{.controls,button,#error{display:none}body{margin:0}}
+</style></head><body>
+<header><h1>GRUP TRÀFEC · Magatzem</h1><a href="/">Gestió central</a></header>
+<p>Consulta del catàleg mestre i de l'estoc del centre autoritzat.</p>
+<div class="controls"><label>Centre <select id="center"><option value="">Selecciona centre</option></select></label><label>Família <select id="family"><option value="">Totes</option></select></label><label>Buscar <input id="query" placeholder="Nom del producte"></label><button id="print">Imprimir</button></div>
+<p id="error" role="alert"></p><p id="count"></p>
+<table><thead><tr><th>Producte</th><th>Família</th><th>Unitat</th><th>Estoc centre</th><th>Mínim</th><th>Estat</th></tr></thead><tbody id="items"></tbody></table>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let products=[],families=[],quantities={};
+function cell(tr,value){const td=document.createElement('td');td.textContent=String(value??'');tr.append(td);return td;}
+async function api(url){const r=await fetch(url);const data=await r.json();if(!r.ok)throw Error(data.error||'Error de consulta');return data;}
+function render(){
+ const body=$('items');body.replaceChildren();
+ const q=$('query').value.toLocaleLowerCase('ca'),family=$('family').value;
+ const rows=products.filter(p=>(!family||p.family===family)&&(!q||p.name.toLocaleLowerCase('ca').includes(q)));
+ for(const p of rows){
+  const tr=document.createElement('tr'),stock=Number(quantities[p.id]||0),min=Number(p.min||0);
+  cell(tr,p.name);cell(tr,p.family||'—');cell(tr,p.unit||'—');cell(tr,stock);cell(tr,min);
+  const state=cell(tr,stock<min?'Sota mínim':'Correcte');if(stock<min)state.className='low';body.append(tr);
+ }
+ $('count').textContent=rows.length+' productes';
+}
+async function load(){
+ const id=$('center').value;$('error').textContent='';products=[];quantities={};render();
+ if(!id)return;
+ try{
+  const [catalog,stock]=await Promise.all([api('/api/magatzem/products?centerId='+encodeURIComponent(id)),api('/api/magatzem/stock/'+encodeURIComponent(id))]);
+  products=catalog.items;families=catalog.families;quantities=stock.quantities;
+  $('family').replaceChildren(new Option('Totes',''),...families.map(f=>new Option(f,f)));render();
+ }catch(e){$('error').textContent=e.message;}
+}
+async function init(){
+ try{const out=await api('/api/govern/centres');for(const c of out.items||[])$('center').add(new Option(c.name,c.id));}catch(e){$('error').textContent=e.message;}
+}
+$('center').onchange=load;$('family').onchange=render;$('query').oninput=render;$('print').onclick=()=>window.print();init();
+</script></body></html>
