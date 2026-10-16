@@ -25,6 +25,10 @@ try {
  assert.strictEqual(mag.stock(center.id)[product.id],5);
  assert.strictEqual(store.read().appccReceptions.length,1);
  assert.strictEqual(store.read().crmContacts[0].name,'No modificar');
+ const reopened=createStore(path.join(dir,'data.json'));
+ assert.strictEqual(reopened.read().products[0].name,'Oli oliva');
+ assert.strictEqual(reopened.read().stockMovements.length,1);
+ assert.strictEqual(reopened.read().appccReceptions.length,1);
  assert.throws(()=>mag.receive(center.id,{...reception,quantity:6}),e=>e.status===409);
  console.log('magatzem.test.js OK');
 } finally {fs.rmSync(dir,{recursive:true,force:true});}
