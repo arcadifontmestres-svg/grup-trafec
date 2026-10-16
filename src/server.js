@@ -3,6 +3,8 @@
 const express = require('express');
 const path = require('path');
 const { createStore } = require('./dades/store');
+const { createMagatzemService } = require('./funcions/magatzem');
+const { createMagatzemRouter } = require('./api/magatzem');
 const { createCrmService } = require('./funcions/crm');
 const { createReservationService } = require('./funcions/reserves');
 const { createCommercialService } = require('./funcions/comercial');
@@ -18,6 +20,7 @@ const PORT = process.env.PORT || 3000;
 const publicDir = path.join(__dirname, '..', 'public');
 
 const store = createStore();
+const magatzem = createMagatzemService(store);
 const crm = createCrmService(store);
 const reservations = createReservationService(store);
 const commercial = createCommercialService(store, crm, reservations);
@@ -32,6 +35,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/govern', createGovernRouter(govern));
+app.use('/api/magatzem', createMagatzemRouter(magatzem, govern));
 app.use('/api/crm', createCrmContextRouter(crm, links, govern));
 app.use('/api/comercial', createCommercialContextRouter(commercial, links, govern));
 app.use('/api/reserves', createReservationContextRouter(reservations, links, govern));
