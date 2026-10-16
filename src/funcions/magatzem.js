@@ -8,13 +8,16 @@ function createMagatzemService(store){
   const name=String(input?.name||'').trim();
   if(!name){const e=new Error('Cal indicar el producte');e.status=400;throw e;}
   const min=Number(input?.min??0);
+  const price=Number(input?.price??0);
+  if(!Number.isFinite(price)||price<0){const e=new Error('Preu no vàlid');e.status=400;throw e;}
   if(!Number.isFinite(min)||min<0){const e=new Error('Estoc mínim no vàlid');e.status=400;throw e;}
   let saved;
   store.update(data=>{
    if(!Array.isArray(data.products))data.products=[];
    const existing=input.id?data.products.find(p=>p.id===input.id):null;
+   if(input.id&&!existing){const e=new Error('Producte no trobat');e.status=404;throw e;}
    const now=new Date().toISOString();
-   saved={...existing,id:existing?.id||'product_'+crypto.randomUUID(),name,family:String(input.family??existing?.family??''),unit:String(input.unit??existing?.unit??'unitat'),min,price:Number(input.price??existing?.price??0),active:input.active!==false,updatedAt:now};
+   saved={...existing,id:existing?.id||'product_'+crypto.randomUUID(),name,family:String(input.family??existing?.family??''),unit:String(input.unit??existing?.unit??'unitat'),min,price,active:input.active!==false,updatedAt:now};
    if(existing)Object.assign(existing,saved);else data.products.push(saved);
   });
   return saved;
