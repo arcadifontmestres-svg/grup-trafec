@@ -22,6 +22,11 @@ try {
     error => error && error.status === 403
   );
 
+  assert.throws(
+    () => assertCenterFunction(govern, center.id, 'unknown_function'),
+    error => error && error.status === 403
+  );
+
   govern.setPermissions(center.id, { functions: { crm: true, commercial: false, reservations: true } });
   assert.doesNotThrow(() => assertCenterFunction(govern, center.id, 'crm'));
   assert.throws(
