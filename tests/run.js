@@ -15,5 +15,6 @@ require('./comercial.test.js');
 require('./reserves-ocupacio.test.js');
 require('./govern-centres.test.js');
 require('./center-access.test.js');
+require('./magatzem.test.js');
 
 console.log('GRUP TRÀFEC tests OK');
