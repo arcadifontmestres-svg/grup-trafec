@@ -1,0 +1,30 @@
+'use strict';
+const assert=require('assert');
+const fs=require('fs'),os=require('os'),path=require('path');
+const {createStore}=require('../src/dades/store');
+const {createGovernService}=require('../src/govern/centres');
+const {createMagatzemService}=require('../src/funcions/magatzem');
+const {assertCenterFunction}=require('../src/api/center-access');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'trafec-magatzem-'));
+try {
+ const store=createStore(path.join(dir,'data.json'));
+ store.update(d=>{d.crmContacts.push({id:'original',name:'No modificar'});});
+ const govern=createGovernService(store);
+ const center=govern.createCenter({code:'S1930',name:'Sarriera 1930'});
+ assert.throws(()=>assertCenterFunction(govern,center.id,'gestio_magatzem'),e=>e.status===403);
+ govern.setPermissions(center.id,{functions:{gestio_magatzem:true}});
+ assert.doesNotThrow(()=>assertCenterFunction(govern,center.id,'gestio_magatzem'));
+ const mag=createMagatzemService(store);
+ const product=mag.save({name:'Oli oliva',family:'Olis',unit:'litre',min:3});
+ assert.deepStrictEqual(mag.families(),['Olis']);
+ assert.strictEqual(mag.list({family:'Olis'}).length,1);
+ assert.strictEqual(mag.stock(center.id)[product.id],undefined);
+ const reception={productId:product.id,quantity:5,lot:'LOT1',supplier:'Proveïdor',requestId:'RECEP1'};
+ const a=mag.receive(center.id,reception),b=mag.receive(center.id,reception);
+ assert.strictEqual(a.id,b.id);
+ assert.strictEqual(mag.stock(center.id)[product.id],5);
+ assert.strictEqual(store.read().appccReceptions.length,1);
+ assert.strictEqual(store.read().crmContacts[0].name,'No modificar');
+ assert.throws(()=>mag.receive(center.id,{...reception,quantity:6}),e=>e.status===409);
+ console.log('magatzem.test.js OK');
+} finally {fs.rmSync(dir,{recursive:true,force:true});}
