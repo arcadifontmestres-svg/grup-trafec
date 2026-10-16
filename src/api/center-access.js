@@ -15,7 +15,7 @@ function assertCenterFunction(govern, centerId, functionKey) {
   }
 
   const permissions = govern.getPermissions(centerId).functions || {};
-  if (permissions[functionKey] === false) {
+  if (permissions[functionKey] !== true) {
     const error = new Error('Funció no habilitada per aquest centre.');
     error.status = 403;
     throw error;
